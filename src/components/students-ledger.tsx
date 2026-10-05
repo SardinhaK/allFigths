@@ -25,17 +25,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -158,7 +150,7 @@ export function StudentsLedger() {
     <>
       <Card className="rounded-sm bg-card/80">
         <CardHeader className="border-b border-white/8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-4">
             <div>
               <CardTitle className="font-heading tracking-[0.14em] text-lg uppercase">
                 Matrículas
@@ -168,6 +160,13 @@ export function StudentsLedger() {
                 histórico.
               </CardDescription>
             </div>
+            <Button
+              className="min-h-11 w-full sm:w-auto sm:self-start"
+              onClick={() => setOpen(true)}
+            >
+              <Plus data-icon="inline-start" />
+              Registrar aluno
+            </Button>
             <Dialog
               open={open}
               onOpenChange={(next) => {
@@ -175,12 +174,6 @@ export function StudentsLedger() {
                 if (!next) resetForm();
               }}
             >
-              <DialogTrigger asChild>
-                <Button className="min-h-11 w-full sm:w-auto">
-                  <Plus data-icon="inline-start" />
-                  Registrar aluno
-                </Button>
-              </DialogTrigger>
               <DialogContent className="max-h-[90vh] overflow-y-auto rounded-sm bg-background sm:max-w-md">
                 <form onSubmit={handleSubmit}>
                   <DialogHeader>
@@ -233,33 +226,35 @@ export function StudentsLedger() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="student-art">Arte marcial</Label>
-                      <Select value={martialArt} onValueChange={setMartialArt}>
-                        <SelectTrigger id="student-art" className="min-h-11 w-full">
-                          <SelectValue placeholder="Escolha a arte" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {martialArts.map((art) => (
-                            <SelectItem key={art} value={art}>
-                              {art}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <select
+                        id="student-art"
+                        value={martialArt}
+                        onChange={(event) => setMartialArt(event.target.value)}
+                        className="border-input bg-background min-h-11 w-full rounded-md border px-3 text-sm"
+                      >
+                        <option value="">Escolha a arte</option>
+                        {martialArts.map((art) => (
+                          <option key={art} value={art}>
+                            {art}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="student-plan">Plano</Label>
-                      <Select value={planId} onValueChange={setPlanId}>
-                        <SelectTrigger id="student-plan" className="min-h-11 w-full">
-                          <SelectValue placeholder="Escolha o plano" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {plans.map((plan) => (
-                            <SelectItem key={plan.id} value={plan.id}>
-                              {plan.name} · {formatBRLFromCents(plan.priceCents)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <select
+                        id="student-plan"
+                        value={planId}
+                        onChange={(event) => setPlanId(event.target.value)}
+                        className="border-input bg-background min-h-11 w-full rounded-md border px-3 text-sm"
+                      >
+                        <option value="">Escolha o plano</option>
+                        {plans.map((plan) => (
+                          <option key={plan.id} value={plan.id}>
+                            {plan.name} · {formatBRLFromCents(plan.priceCents)}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <label className="flex min-h-11 items-center gap-3 text-sm">
                       <Checkbox
