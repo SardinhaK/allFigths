@@ -1,35 +1,39 @@
 # AllFights
 
-Academia de artes marciais em Vila Madalena (São Paulo). Site público do dojo e área do gerente para matrículas e mensalidades, com visual samurai em vermelho, preto e branco.
+Academia de artes marciais em Recife (PE). Site público com unidades, eventos e loja parceira, mais área do atendente para matrículas e mensalidades.
 
-A fatia pronta cobre:
+## O que tem
 
-- Página inicial com artes, horários, endereço e contato
-- Login do gerente (credenciais de demonstração, sessão no `localStorage`)
-- Cadastro de alunos (nome, arte, mensalidade, pagamento do mês)
-- Visão financeira de quem está em débito e o total em aberto
-- Persistência dos alunos no `localStorage`, com lista de demonstração na primeira visita
-
-Não há banco de dados nem provedor de autenticação.
+- Home contínua: história + seções das unidades Caxangá, Nova Descoberta e Correio Galeria (horários, planos, mapa)
+- Página de eventos (`/eventos`) — lista pronta; vazia até publicar eventos
+- Império dos Tatãs (`/imperio-dos-tatas`) — loja de tatames com mapa
+- Login de atendente por unidade + gestão mobile de alunos no banco SQLite/Prisma
+- Campos do aluno: nome, endereço, telefone, plano, arte, pago no mês e histórico mensal
 
 ## Como rodar
 
-Rode na raiz do repositório (a pasta que contém o `package.json`):
-
 ```bash
 npm install
+cp .env.example .env
+npx prisma migrate deploy
+npx prisma db seed
 npm run dev
 ```
 
-O servidor sobe em [http://127.0.0.1:43127](http://127.0.0.1:43127).
+Servidor: [http://127.0.0.1:43127](http://127.0.0.1:43127)
 
-## Acesso do gerente (demo)
+## Acessos demo (atendentes)
 
-- E-mail: `gerente@allfights.com.br`
-- Senha: `katana2026`
+Senha de todas as unidades: `katana2026`
 
-A sessão e os alunos ficam apenas neste navegador. Um recarregamento mantém os dados.
+| Unidade | E-mail |
+|---|---|
+| Caxangá | `caxanga@allfights.com.br` |
+| Nova Descoberta | `nova@allfights.com.br` |
+| Correio Galeria | `correio@allfights.com.br` |
+
+Cada atendente só vê e edita alunos da própria unidade. Os dados ficam no banco (`prisma/dev.db`), acessíveis de qualquer dispositivo que use o mesmo servidor.
 
 ## Stack
 
-Next.js (App Router), TypeScript, Tailwind CSS e shadcn/ui.
+Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui, Prisma + SQLite.

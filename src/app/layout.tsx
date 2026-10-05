@@ -27,7 +27,7 @@ const notoSerifJp = Noto_Serif_JP({
 export const metadata: Metadata = {
   title: "AllFights — Academia de artes marciais",
   description:
-    "Dojo AllFights em Vila Madalena, São Paulo. Jiu-Jitsu, Muay Thai, Karatê, Judô, Boxe e Taekwondo. Matrículas e gestão de mensalidades.",
+    "AllFights em Recife: unidades Caxangá, Nova Descoberta e Correio Galeria. Eventos, Império dos Tatãs e gestão de alunos.",
 };
 
 export default function RootLayout({

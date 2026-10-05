@@ -1,89 +1,75 @@
 "use client";
 
-import { useCallback, useMemo, useSyncExternalStore } from "react";
-import { DEMO_MANAGER } from "@/lib/academy";
-import { useHydrated } from "@/hooks/use-hydrated";
-import { SESSION_STORAGE_KEY, type ManagerSession } from "@/lib/students";
+import { useCallback, useEffect, useState } from "react";
 
-const listeners = new Set<() => void>();
+export type AttendantSession = {
+  email: string;
+  name: string;
+  unitId: string;
+  unitSlug: string;
+  unitName: string;
+};
 
-function emit() {
-  listeners.forEach((listener) => listener());
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  const onStorage = (event: StorageEvent) => {
-    if (event.key === SESSION_STORAGE_KEY || event.key === null) listener();
-  };
-  window.addEventListener("storage", onStorage);
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener("storage", onStorage);
-  };
-}
-
-function getSnapshot() {
-  return localStorage.getItem(SESSION_STORAGE_KEY);
-}
-
-function getServerSnapshot() {
-  return null;
-}
-
-function parseSession(raw: string | null): ManagerSession | null {
-  if (!raw) return null;
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (
-      !parsed ||
-      typeof parsed !== "object" ||
-      typeof (parsed as ManagerSession).email !== "string" ||
-      typeof (parsed as ManagerSession).loggedInAt !== "string"
-    ) {
-      return null;
-    }
-    return parsed as ManagerSession;
-  } catch {
-    return null;
-  }
-}
+type SessionState = {
+  status: "loading" | "ready";
+  attendant: AttendantSession | null;
+};
 
 export function useSession() {
-  const hydrated = useHydrated();
-  const raw = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const session = useMemo(
-    () => (hydrated ? parseSession(raw) : null),
-    [hydrated, raw]
-  );
+  const [state, setState] = useState<SessionState>({
+    status: "loading",
+    attendant: null,
+  });
 
-  const login = useCallback((email: string, password: string) => {
-    const normalized = email.trim().toLowerCase();
-    if (
-      normalized !== DEMO_MANAGER.email ||
-      password !== DEMO_MANAGER.password
-    ) {
-      return { ok: false as const };
+  const refresh = useCallback(async () => {
+    try {
+      const response = await fetch("/api/auth/me", { cache: "no-store" });
+      if (!response.ok) {
+        setState({ status: "ready", attendant: null });
+        return null;
+      }
+      const data = (await response.json()) as {
+        attendant: AttendantSession;
+      };
+      setState({ status: "ready", attendant: data.attendant });
+      return data.attendant;
+    } catch {
+      setState({ status: "ready", attendant: null });
+      return null;
     }
-    const next: ManagerSession = {
-      email: DEMO_MANAGER.email,
-      loggedInAt: new Date().toISOString(),
-    };
-    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(next));
-    emit();
-    return { ok: true as const };
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem(SESSION_STORAGE_KEY);
-    emit();
+  useEffect(() => {
+    // Carrega a sessão do cookie no mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch inicial da sessão
+    void refresh();
+  }, [refresh]);
+
+  const login = useCallback(async (email: string, password: string) => {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!response.ok) {
+      return { ok: false as const };
+    }
+    const data = (await response.json()) as { attendant: AttendantSession };
+    setState({ status: "ready", attendant: data.attendant });
+    return { ok: true as const, attendant: data.attendant };
+  }, []);
+
+  const logout = useCallback(async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setState({ status: "ready", attendant: null });
   }, []);
 
   return {
-    session,
-    status: hydrated ? ("ready" as const) : ("loading" as const),
+    status: state.status,
+    attendant: state.attendant,
+    isAuthenticated: Boolean(state.attendant),
     login,
     logout,
-    isAuthenticated: Boolean(session),
+    refresh,
   };
 }

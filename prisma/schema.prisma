@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Unit {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  shortName String
+  address   String
+  city      String
+  mapsUrl   String
+  phone     String
+  summary   String
+  createdAt DateTime @default(now())
+
+  attendants Attendant[]
+  plans      Plan[]
+  schedules  ScheduleSlot[]
+  students   Student[]
+}
+
+model Attendant {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  unitId       String
+  unit         Unit     @relation(fields: [unitId], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model Plan {
+  id          String @id @default(cuid())
+  unitId      String
+  unit        Unit   @relation(fields: [unitId], references: [id])
+  name        String
+  priceCents  Int
+  description String
+  students    Student[]
+
+  @@unique([unitId, name])
+}
+
+model ScheduleSlot {
+  id         String @id @default(cuid())
+  unitId     String
+  unit       Unit   @relation(fields: [unitId], references: [id])
+  dayOfWeek  String
+  time       String
+  martialArt String
+  sortOrder  Int    @default(0)
+}
+
+model Student {
+  id         String    @id @default(cuid())
+  unitId     String
+  unit       Unit      @relation(fields: [unitId], references: [id])
+  planId     String
+  plan       Plan      @relation(fields: [planId], references: [id])
+  name       String
+  address    String
+  phone      String
+  martialArt String
+  createdAt  DateTime  @default(now())
+  payments   Payment[]
+}
+
+model Payment {
+  id        String    @id @default(cuid())
+  studentId String
+  student   Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  yearMonth String
+  paid      Boolean   @default(false)
+  paidAt    DateTime?
+  updatedAt DateTime  @updatedAt
+
+  @@unique([studentId, yearMonth])
+}
+
+model Event {
+  id        String   @id @default(cuid())
+  title     String
+  summary   String
+  imageUrl  String?
+  startsAt  DateTime
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
