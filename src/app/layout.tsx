@@ -25,9 +25,9 @@ const notoSerifJp = Noto_Serif_JP({
 });
 
 export const metadata: Metadata = {
-  title: "AllFights — Academia de artes marciais",
+  title: "All Fights Caxangá — Academia de artes marciais",
   description:
-    "Dojo AllFights em Vila Madalena, São Paulo. Jiu-Jitsu, Muay Thai, Karatê, Judô, Boxe e Taekwondo. Matrículas e gestão de mensalidades.",
+    "Academia All Fights em Caxangá, Recife/PE. Boxe, Muay Thai, MMA, Jiu-Jitsu, Kickboxing, Karatê, Judô e Taekwondo. Rua Pedro Ernesto, 46.",
 };
 
 export default function RootLayout({

@@ -1,26 +1,41 @@
 export const ACADEMY = {
-  name: "AllFights",
-  legalName: "AllFights Academia de Artes Marciais",
+  name: "All Fights",
+  legalName: "Academia All Fights",
   kanji: "武",
-  motto: "Disciplina antes do golpe.",
-  foundedYear: 2014,
-  city: "São Paulo",
-  neighborhood: "Vila Madalena",
-  addressLine: "Rua Harmonia, 412",
-  addressRest: "Vila Madalena — São Paulo/SP",
-  postalCode: "05435-000",
-  phone: "(11) 3814-2090",
-  email: "contato@allfights.com.br",
+  motto: "Onde a disciplina encontra a força.",
+  tagline: "Academia de artes marciais em Caxangá",
+  city: "Recife",
+  state: "PE",
+  neighborhood: "Caxangá",
+  addressLine: "Rua Pedro Ernesto, 46",
+  addressRest: "Caxangá — Recife/PE",
+  postalCode: "50800-190",
+  phone: "(81) 99323-3254",
+  phoneE164: "+5581993233254",
+  whatsappUrl: "https://wa.me/5581993233254",
+  email: undefined,
+  instagramHandle: "allfightscaxanga",
+  instagramUrl: "https://www.instagram.com/allfightscaxanga/",
+  brandInstagramHandle: "academiaallfights",
   hours: [
     { days: "Segunda a sexta", time: "06:00 – 22:00" },
-    { days: "Sábado", time: "08:00 – 18:00" },
-    { days: "Domingo", time: "09:00 – 13:00 · treino livre" },
+    { days: "Sábado e domingo", time: "08:00 – 14:00" },
+  ],
+  amenities: [
+    "Área infantil",
+    "Armários",
+    "Chuveiro",
+    "Vestiário",
+    "Estacionamento",
+    "Wi-Fi",
   ],
 } as const;
 
 export const MARTIAL_ARTS = [
   "Jiu-Jitsu",
   "Muay Thai",
+  "MMA",
+  "Kickboxing",
   "Karatê",
   "Judô",
   "Boxe",
@@ -38,13 +53,25 @@ export const ART_DETAILS: {
     name: "Jiu-Jitsu",
     japanese: "柔術",
     summary:
-      "Controle, alavancas e persistência no chão. Guardas, passagens e finalizações com calma.",
+      "Adultos e kids no tatame. Controle, alavancas e finalizações — inclusive linha Morganti Ju-Jitsu.",
   },
   {
     name: "Muay Thai",
     japanese: "ムエタイ",
     summary:
       "A arte das oito armas. Base firme, clinch, joelhos e cotovelos no ritmo certo.",
+  },
+  {
+    name: "MMA",
+    japanese: "総合格闘",
+    summary:
+      "Integração de striking e grappling. Preparação completa para quem quer cruzar as artes.",
+  },
+  {
+    name: "Kickboxing",
+    japanese: "蹴拳",
+    summary:
+      "Socos e chutes em alta intensidade. Condicionamento, guarda e combinações limpas.",
   },
   {
     name: "Karatê",
@@ -56,7 +83,7 @@ export const ART_DETAILS: {
     name: "Judô",
     japanese: "柔道",
     summary:
-      "Quedas, agarre e o uso da força do outro. O caminho suave, executado com rigor.",
+      "Kids, teens e adultos. Quedas, agarre e o uso da força do outro — o caminho suave com rigor.",
   },
   {
     name: "Boxe",
@@ -69,38 +96,6 @@ export const ART_DETAILS: {
     japanese: "跆拳道",
     summary:
       "Chutes longos, equilíbrio e explosão. Distância medida, impacto controlado.",
-  },
-];
-
-export const WEEKLY_SCHEDULE: {
-  days: string;
-  slots: { time: string; art: string }[];
-}[] = [
-  {
-    days: "Segunda, quarta e sexta",
-    slots: [
-      { time: "07:00", art: "Judô" },
-      { time: "12:00", art: "Boxe" },
-      { time: "19:00", art: "Jiu-Jitsu" },
-      { time: "20:30", art: "Muay Thai" },
-    ],
-  },
-  {
-    days: "Terça e quinta",
-    slots: [
-      { time: "07:00", art: "Karatê" },
-      { time: "12:00", art: "Taekwondo" },
-      { time: "19:00", art: "Jiu-Jitsu" },
-      { time: "20:30", art: "Muay Thai" },
-    ],
-  },
-  {
-    days: "Sábado",
-    slots: [
-      { time: "09:00", art: "Karatê" },
-      { time: "10:30", art: "Jiu-Jitsu" },
-      { time: "16:00", art: "Treino livre" },
-    ],
   },
 ];
 

@@ -1,8 +1,6 @@
-import Link from "next/link";
 import {
   ACADEMY,
   ART_DETAILS,
-  WEEKLY_SCHEDULE,
 } from "@/lib/academy";
 import { DojoStamp } from "@/components/dojo-stamp";
 import { SiteFooter } from "@/components/site-footer";
@@ -22,23 +20,29 @@ export default function HomePage() {
           <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:py-24">
             <div>
               <p className="text-[11px] tracking-[0.38em] text-primary uppercase">
-                Academia · Vila Madalena · {ACADEMY.foundedYear}
+                Academia · Caxangá · Recife
               </p>
               <h1 className="mt-5 font-heading text-5xl tracking-[0.18em] text-foreground sm:text-7xl">
-                ALLFIGHTS
+                ALL FIGHTS
               </h1>
               <p className="mt-4 max-w-xl text-lg text-muted-foreground">
-                Dojo sério para quem trata o treino como ofício. Jiu-Jitsu, Muay
-                Thai, Karatê, Judô, Boxe e Taekwondo — no mesmo tatame, com a
-                mesma exigência.
+                O tatame onde você descobre sua melhor versão. Condicionamento,
+                defesa pessoal e formação de campeões — com a maior variedade de
+                modalidades da região.
               </p>
               <p className="mt-3 font-jp text-primary">{ACADEMY.motto}</p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg">
-                  <a href="#artes">Ver as artes</a>
+                  <a
+                    href={ACADEMY.whatsappUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Falar no WhatsApp
+                  </a>
                 </Button>
                 <Button asChild size="lg" variant="outline">
-                  <Link href="/login">Área do gerente</Link>
+                  <a href="#artes">Ver as artes</a>
                 </Button>
               </div>
             </div>
@@ -49,7 +53,7 @@ export default function HomePage() {
                   <dt className="tracking-[0.16em] text-muted-foreground uppercase">
                     Horário
                   </dt>
-                  <dd>Seg–sex 06:00–22:00</dd>
+                  <dd>Seg–sex 06:00–22:00 · sáb/dom 08:00–14:00</dd>
                 </div>
                 <div>
                   <dt className="tracking-[0.16em] text-muted-foreground uppercase">
@@ -71,16 +75,17 @@ export default function HomePage() {
         <section id="artes" className="scroll-mt-20">
           <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
             <p className="text-[11px] tracking-[0.32em] text-primary uppercase">
-              01 — Caminhos
+              01 — Modalidades
             </p>
             <h2 className="mt-3 font-heading text-3xl tracking-[0.16em] uppercase sm:text-4xl">
               Artes que ensinamos
             </h2>
             <p className="mt-3 max-w-2xl text-muted-foreground">
-              Seis disciplinas, uma casa. Cada aula começa em silêncio e termina
-              com o mesmo padrão: técnica, respeito, repetição.
+              Boxe, Muay Thai, MMA, Jiu-Jitsu, Kickboxing, Taekwondo, Karatê e
+              Judô — com turmas kids e teens. Ambiente familiar e coaching
+              profissional.
             </p>
-            <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {ART_DETAILS.map((art) => (
                 <li
                   key={art.name}
@@ -102,16 +107,16 @@ export default function HomePage() {
         <section id="horarios" className="scroll-mt-20 border-y border-white/10 bg-black/20">
           <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
             <p className="text-[11px] tracking-[0.32em] text-primary uppercase">
-              02 — Grade
+              02 — Funcionamento
             </p>
             <h2 className="mt-3 font-heading text-3xl tracking-[0.16em] uppercase sm:text-4xl">
               Horários
             </h2>
             <p className="mt-3 max-w-2xl text-muted-foreground">
-              Portas abertas o dia inteiro. Chegue quinze minutos antes: o tatame
-              não espera.
+              Portas abertas o dia inteiro durante a semana. Confirme a grade
+              das aulas pelo Instagram ou WhatsApp.
             </p>
-            <dl className="mt-8 grid gap-3 sm:grid-cols-3">
+            <dl className="mt-8 grid gap-3 sm:grid-cols-2">
               {ACADEMY.hours.map((item) => (
                 <div key={item.days} className="border border-white/10 p-4">
                   <dt className="text-xs tracking-[0.16em] text-muted-foreground uppercase">
@@ -121,25 +126,25 @@ export default function HomePage() {
                 </div>
               ))}
             </dl>
-            <div className="mt-8 grid gap-6 lg:grid-cols-3">
-              {WEEKLY_SCHEDULE.map((block) => (
-                <div key={block.days} className="border border-white/10 p-5">
-                  <h3 className="font-heading tracking-[0.12em] uppercase">
-                    {block.days}
-                  </h3>
-                  <ul className="mt-4 space-y-2 text-sm">
-                    {block.slots.map((slot) => (
-                      <li
-                        key={`${block.days}-${slot.time}`}
-                        className="flex items-baseline justify-between gap-4 border-b border-white/8 py-2 last:border-0"
-                      >
-                        <span className="font-mono text-primary">{slot.time}</span>
-                        <span>{slot.art}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Button asChild variant="outline">
+                <a
+                  href={ACADEMY.instagramUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  @{ACADEMY.instagramHandle}
+                </a>
+              </Button>
+              <Button asChild>
+                <a
+                  href={ACADEMY.whatsappUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Grade e matrícula no WhatsApp
+                </a>
+              </Button>
             </div>
           </div>
         </section>
@@ -154,15 +159,26 @@ export default function HomePage() {
                 O dojo
               </h2>
               <p className="mt-4 text-muted-foreground">
-                A AllFights ocupa um sobrado na Rua Harmonia, em Vila Madalena.
-                Tatame no piso superior, saco e ringue no térreo, vestiários
-                separados. Sem vitrine de academia. Quem entra, treina.
+                A All Fights Caxangá fica na Rua Pedro Ernesto, no coração do
+                bairro. Estrutura com área infantil, vestiários, chuveiros,
+                armários, estacionamento e Wi-Fi — pensada para treinar em
+                família e com seriedade.
               </p>
               <p className="mt-4 text-muted-foreground">
-                Visitantes assistem a uma aula antes de matricular. Mensalidades
-                são cobradas no mês vigente; o gerente registra cada aluno e o
-                financeiro do dojo.
+                Desafie seus limites. Venha ser All Fights. Matrículas e
+                mensalidades são acompanhadas pela área do gerente; a grade e
+                as novidades saem primeiro no Instagram.
               </p>
+              <ul className="mt-6 flex flex-wrap gap-2 text-xs tracking-[0.14em] text-muted-foreground uppercase">
+                {ACADEMY.amenities.map((item) => (
+                  <li
+                    key={item}
+                    className="border border-white/10 px-3 py-1.5"
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
             </div>
             <address className="not-italic border border-white/10 bg-card/70 p-6">
               <p className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
@@ -175,17 +191,26 @@ export default function HomePage() {
               <p className="text-muted-foreground">CEP {ACADEMY.postalCode}</p>
               <Separator className="my-5" />
               <p>
-                <a className="hover:text-primary" href={`tel:+551138142090`}>
-                  {ACADEMY.phone}
-                </a>
-              </p>
-              <p className="mt-1">
                 <a
                   className="hover:text-primary"
-                  href={`mailto:${ACADEMY.email}`}
+                  href={`tel:${ACADEMY.phoneE164}`}
                 >
-                  {ACADEMY.email}
+                  {ACADEMY.phone}
                 </a>
+                <span className="text-muted-foreground"> · WhatsApp</span>
+              </p>
+              <p className="mt-2">
+                <a
+                  className="hover:text-primary"
+                  href={ACADEMY.instagramUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  @{ACADEMY.instagramHandle}
+                </a>
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Marca: @{ACADEMY.brandInstagramHandle}
               </p>
             </address>
           </div>

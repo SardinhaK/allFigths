@@ -45,7 +45,7 @@ export function SiteHeader() {
               {ACADEMY.name.toUpperCase()}
             </span>
             <span className="mt-1 text-[10px] tracking-[0.28em] text-muted-foreground uppercase">
-              São Paulo · 道場
+              Caxangá · Recife · 道場
             </span>
           </span>
         </Link>
