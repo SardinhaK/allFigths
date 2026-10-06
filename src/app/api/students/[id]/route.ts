@@ -5,7 +5,43 @@ import { currentYearMonth } from "@/lib/format";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function PATCH(request: Request, { params }: Params) {
+const studentInclude = {
+  plan: true,
+  payments: { orderBy: { yearMonth: "desc" as const } },
+};
+
+function serializeStudent(
+  student: {
+    id: string;
+    name: string;
+    address: string;
+    phone: string;
+    martialArt: string;
+    createdAt: Date;
+    plan: { id: string; name: string; priceCents: number; description: string };
+    payments: { yearMonth: string; paid: boolean; paidAt: Date | null }[];
+  },
+  yearMonth: string
+) {
+  const current = student.payments.find((p) => p.yearMonth === yearMonth);
+  return {
+    id: student.id,
+    name: student.name,
+    address: student.address,
+    phone: student.phone,
+    martialArt: student.martialArt,
+    createdAt: student.createdAt.toISOString(),
+    plan: student.plan,
+    paidThisMonth: current?.paid ?? false,
+    payments: student.payments.map((payment) => ({
+      yearMonth: payment.yearMonth,
+      paid: payment.paid,
+      paidAt: payment.paidAt?.toISOString() ?? null,
+    })),
+  };
+}
+
+export async function GET(_request: Request, { params }: Params) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
@@ -14,8 +50,28 @@ export async function PATCH(request: Request, { params }: Params) {
   const { id } = await params;
   const student = await prisma.student.findFirst({
     where: { id, unitId: session.unitId },
+    include: studentInclude,
   });
   if (!student) {
+    return NextResponse.json({ error: "Aluno não encontrado." }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    student: serializeStudent(student, currentYearMonth()),
+  });
+}
+
+export async function PATCH(request: Request, { params }: Params) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const existing = await prisma.student.findFirst({
+    where: { id, unitId: session.unitId },
+  });
+  if (!existing) {
     return NextResponse.json({ error: "Aluno não encontrado." }, { status: 404 });
   }
 
@@ -28,23 +84,45 @@ export async function PATCH(request: Request, { params }: Params) {
       planId?: string;
     };
 
-    const data: {
-      name?: string;
-      address?: string;
-      phone?: string;
-      martialArt?: string;
-      planId?: string;
-    } = {};
+    const name = typeof body.name === "string" ? body.name.trim() : existing.name;
+    const address =
+      typeof body.address === "string" ? body.address.trim() : existing.address;
+    const phone =
+      typeof body.phone === "string" ? body.phone.trim() : existing.phone;
+    const martialArt =
+      typeof body.martialArt === "string"
+        ? body.martialArt.trim()
+        : existing.martialArt;
+    let planId = existing.planId;
 
-    if (typeof body.name === "string") data.name = body.name.trim();
-    if (typeof body.address === "string") data.address = body.address.trim();
-    if (typeof body.phone === "string") data.phone = body.phone.trim();
-    if (typeof body.martialArt === "string") {
-      data.martialArt = body.martialArt.trim();
+    if (name.length < 3) {
+      return NextResponse.json(
+        { error: "Informe o nome completo do aluno." },
+        { status: 400 }
+      );
     }
+    if (address.length < 5) {
+      return NextResponse.json(
+        { error: "Informe o endereço do aluno." },
+        { status: 400 }
+      );
+    }
+    if (phone.length < 8) {
+      return NextResponse.json(
+        { error: "Informe um telefone válido." },
+        { status: 400 }
+      );
+    }
+    if (!martialArt) {
+      return NextResponse.json(
+        { error: "Escolha a arte marcial." },
+        { status: 400 }
+      );
+    }
+
     if (typeof body.planId === "string") {
       const plan = await prisma.plan.findFirst({
-        where: { id: body.planId, unitId: session.unitId },
+        where: { id: body.planId.trim(), unitId: session.unitId },
       });
       if (!plan) {
         return NextResponse.json(
@@ -52,41 +130,46 @@ export async function PATCH(request: Request, { params }: Params) {
           { status: 400 }
         );
       }
-      data.planId = plan.id;
+      planId = plan.id;
     }
 
     const updated = await prisma.student.update({
       where: { id },
-      data,
-      include: {
-        plan: true,
-        payments: { orderBy: { yearMonth: "desc" } },
-      },
+      data: { name, address, phone, martialArt, planId },
+      include: studentInclude,
     });
 
-    const yearMonth = currentYearMonth();
-    const current = updated.payments.find((p) => p.yearMonth === yearMonth);
-
     return NextResponse.json({
-      student: {
-        id: updated.id,
-        name: updated.name,
-        address: updated.address,
-        phone: updated.phone,
-        martialArt: updated.martialArt,
-        createdAt: updated.createdAt.toISOString(),
-        plan: updated.plan,
-        paidThisMonth: current?.paid ?? false,
-        payments: updated.payments.map((payment) => ({
-          yearMonth: payment.yearMonth,
-          paid: payment.paid,
-          paidAt: payment.paidAt?.toISOString() ?? null,
-        })),
-      },
+      student: serializeStudent(updated, currentYearMonth()),
     });
   } catch {
     return NextResponse.json(
       { error: "Não foi possível atualizar o aluno." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(_request: Request, { params }: Params) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const existing = await prisma.student.findFirst({
+    where: { id, unitId: session.unitId },
+  });
+  if (!existing) {
+    return NextResponse.json({ error: "Aluno não encontrado." }, { status: 404 });
+  }
+
+  try {
+    await prisma.student.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json(
+      { error: "Não foi possível excluir o aluno." },
       { status: 500 }
     );
   }

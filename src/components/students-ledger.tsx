@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { AlertCircle, History, Loader2, Plus } from "lucide-react";
+import { AlertCircle, History, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   formatBRLFromCents,
   formatYearMonthLabel,
 } from "@/lib/format";
-import { useStudents } from "@/hooks/use-students";
+import {
+  useStudents,
+  type StudentRecord,
+} from "@/hooks/use-students";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,6 +40,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+type FormMode = "create" | "edit";
+
 export function StudentsLedger() {
   const {
     students,
@@ -45,11 +50,18 @@ export function StudentsLedger() {
     status,
     errorMessage,
     addStudent,
+    updateStudent,
+    deleteStudent,
     setPaid,
     refresh,
   } = useStudents();
-  const [open, setOpen] = useState(false);
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<FormMode>("create");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<StudentRecord | null>(null);
+
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
@@ -58,6 +70,8 @@ export function StudentsLedger() {
   const [paid, setPaidThisMonth] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const historyStudent = students.find((student) => student.id === historyId);
 
@@ -69,6 +83,27 @@ export function StudentsLedger() {
     setPlanId("");
     setPaidThisMonth(false);
     setFormError(null);
+    setEditingId(null);
+    setFormMode("create");
+  }
+
+  function openCreate() {
+    resetForm();
+    setFormMode("create");
+    setFormOpen(true);
+  }
+
+  function openEdit(student: StudentRecord) {
+    setFormMode("edit");
+    setEditingId(student.id);
+    setName(student.name);
+    setAddress(student.address);
+    setPhone(student.phone);
+    setMartialArt(student.martialArt);
+    setPlanId(student.plan.id);
+    setPaidThisMonth(student.paidThisMonth);
+    setFormError(null);
+    setFormOpen(true);
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -97,14 +132,22 @@ export function StudentsLedger() {
     }
 
     setSaving(true);
-    const result = await addStudent({
+    const payload = {
       name: name.trim(),
       address: address.trim(),
       phone: phone.trim(),
       martialArt,
       planId,
       paidThisMonth: paid,
-    });
+    };
+
+    const result =
+      formMode === "create"
+        ? await addStudent(payload)
+        : editingId
+          ? await updateStudent(editingId, payload)
+          : { ok: false as const, error: "Aluno inválido." };
+
     setSaving(false);
 
     if (!result.ok) {
@@ -113,7 +156,21 @@ export function StudentsLedger() {
     }
 
     resetForm();
-    setOpen(false);
+    setFormOpen(false);
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError(null);
+    const result = await deleteStudent(deleteTarget.id);
+    setDeleting(false);
+    if (!result.ok) {
+      setDeleteError(result.error);
+      return;
+    }
+    if (historyId === deleteTarget.id) setHistoryId(null);
+    setDeleteTarget(null);
   }
 
   if (status === "loading") {
@@ -138,7 +195,12 @@ export function StudentsLedger() {
         <AlertTitle>Falha ao ler os alunos</AlertTitle>
         <AlertDescription>
           {errorMessage}{" "}
-          <Button variant="outline" size="sm" className="mt-3 min-h-11" onClick={refresh}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 min-h-11"
+            onClick={refresh}
+          >
             Tentar de novo
           </Button>
         </AlertDescription>
@@ -156,132 +218,17 @@ export function StudentsLedger() {
                 Matrículas
               </CardTitle>
               <CardDescription>
-                Nome, endereço, telefone, plano, arte e pagamento do mês — com
-                histórico.
+                CRUD completo: cadastrar, editar, excluir e acompanhar
+                pagamentos.
               </CardDescription>
             </div>
             <Button
               className="min-h-11 w-full sm:w-auto sm:self-start"
-              onClick={() => setOpen(true)}
+              onClick={openCreate}
             >
               <Plus data-icon="inline-start" />
               Registrar aluno
             </Button>
-            <Dialog
-              open={open}
-              onOpenChange={(next) => {
-                setOpen(next);
-                if (!next) resetForm();
-              }}
-            >
-              <DialogContent className="max-h-[90vh] overflow-y-auto rounded-sm bg-background sm:max-w-md">
-                <form onSubmit={handleSubmit}>
-                  <DialogHeader>
-                    <DialogTitle className="font-heading tracking-[0.12em] uppercase">
-                      Novo aluno
-                    </DialogTitle>
-                    <DialogDescription>
-                      Cadastro simples desta unidade.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="mt-4 grid gap-4">
-                    {formError ? (
-                      <Alert variant="destructive">
-                        <AlertCircle />
-                        <AlertTitle>Revise o cadastro</AlertTitle>
-                        <AlertDescription>{formError}</AlertDescription>
-                      </Alert>
-                    ) : null}
-                    <div className="grid gap-2">
-                      <Label htmlFor="student-name">Nome</Label>
-                      <Input
-                        id="student-name"
-                        value={name}
-                        onChange={(event) => setName(event.target.value)}
-                        placeholder="Nome completo"
-                        autoComplete="name"
-                        className="min-h-11"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="student-address">Endereço</Label>
-                      <Input
-                        id="student-address"
-                        value={address}
-                        onChange={(event) => setAddress(event.target.value)}
-                        placeholder="Rua, número, bairro"
-                        className="min-h-11"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="student-phone">Telefone</Label>
-                      <Input
-                        id="student-phone"
-                        value={phone}
-                        onChange={(event) => setPhone(event.target.value)}
-                        placeholder="(81) 90000-0000"
-                        inputMode="tel"
-                        className="min-h-11"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="student-art">Arte marcial</Label>
-                      <select
-                        id="student-art"
-                        value={martialArt}
-                        onChange={(event) => setMartialArt(event.target.value)}
-                        className="border-input bg-background min-h-11 w-full rounded-md border px-3 text-sm"
-                      >
-                        <option value="">Escolha a arte</option>
-                        {martialArts.map((art) => (
-                          <option key={art} value={art}>
-                            {art}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="student-plan">Plano</Label>
-                      <select
-                        id="student-plan"
-                        value={planId}
-                        onChange={(event) => setPlanId(event.target.value)}
-                        className="border-input bg-background min-h-11 w-full rounded-md border px-3 text-sm"
-                      >
-                        <option value="">Escolha o plano</option>
-                        {plans.map((plan) => (
-                          <option key={plan.id} value={plan.id}>
-                            {plan.name} · {formatBRLFromCents(plan.priceCents)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <label className="flex min-h-11 items-center gap-3 text-sm">
-                      <Checkbox
-                        checked={paid}
-                        onCheckedChange={(value) =>
-                          setPaidThisMonth(value === true)
-                        }
-                      />
-                      Pagou a mensalidade deste mês
-                    </label>
-                  </div>
-                  <DialogFooter className="mt-6">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="min-h-11"
-                      onClick={() => setOpen(false)}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button type="submit" className="min-h-11" disabled={saving}>
-                      {saving ? "Salvando…" : "Salvar matrícula"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
           </div>
         </CardHeader>
         <CardContent className="pt-6">
@@ -304,7 +251,7 @@ export function StudentsLedger() {
                       <TableHead>Contato</TableHead>
                       <TableHead>Arte / Plano</TableHead>
                       <TableHead>Este mês</TableHead>
-                      <TableHead />
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -342,15 +289,35 @@ export function StudentsLedger() {
                           </label>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="min-h-11"
-                            onClick={() => setHistoryId(student.id)}
-                          >
-                            <History data-icon="inline-start" />
-                            Histórico
-                          </Button>
+                          <div className="flex flex-wrap justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="min-h-11"
+                              onClick={() => openEdit(student)}
+                            >
+                              <Pencil data-icon="inline-start" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="min-h-11"
+                              onClick={() => setHistoryId(student.id)}
+                            >
+                              <History data-icon="inline-start" />
+                              Histórico
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="min-h-11"
+                              onClick={() => setDeleteTarget(student)}
+                            >
+                              <Trash2 data-icon="inline-start" />
+                              Excluir
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -392,14 +359,32 @@ export function StudentsLedger() {
                       />
                       Pagou este mês
                     </label>
-                    <Button
-                      variant="outline"
-                      className="mt-3 min-h-11 w-full"
-                      onClick={() => setHistoryId(student.id)}
-                    >
-                      <History data-icon="inline-start" />
-                      Ver histórico de pagamentos
-                    </Button>
+                    <div className="mt-3 grid gap-2">
+                      <Button
+                        variant="outline"
+                        className="min-h-11 w-full"
+                        onClick={() => openEdit(student)}
+                      >
+                        <Pencil data-icon="inline-start" />
+                        Editar aluno
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="min-h-11 w-full"
+                        onClick={() => setHistoryId(student.id)}
+                      >
+                        <History data-icon="inline-start" />
+                        Histórico de pagamentos
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        className="min-h-11 w-full"
+                        onClick={() => setDeleteTarget(student)}
+                      >
+                        <Trash2 data-icon="inline-start" />
+                        Excluir aluno
+                      </Button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -407,6 +392,130 @@ export function StudentsLedger() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog
+        open={formOpen}
+        onOpenChange={(next) => {
+          setFormOpen(next);
+          if (!next) resetForm();
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-sm bg-background sm:max-w-md">
+          <form onSubmit={handleSubmit}>
+            <DialogHeader>
+              <DialogTitle className="font-heading tracking-[0.12em] uppercase">
+                {formMode === "create" ? "Novo aluno" : "Editar aluno"}
+              </DialogTitle>
+              <DialogDescription>
+                {formMode === "create"
+                  ? "Cadastro simples desta unidade."
+                  : "Atualize os dados do aluno nesta unidade."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4 grid gap-4">
+              {formError ? (
+                <Alert variant="destructive">
+                  <AlertCircle />
+                  <AlertTitle>Revise o cadastro</AlertTitle>
+                  <AlertDescription>{formError}</AlertDescription>
+                </Alert>
+              ) : null}
+              <div className="grid gap-2">
+                <Label htmlFor="student-name">Nome</Label>
+                <Input
+                  id="student-name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Nome completo"
+                  autoComplete="name"
+                  className="min-h-11"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="student-address">Endereço</Label>
+                <Input
+                  id="student-address"
+                  value={address}
+                  onChange={(event) => setAddress(event.target.value)}
+                  placeholder="Rua, número, bairro"
+                  className="min-h-11"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="student-phone">Telefone</Label>
+                <Input
+                  id="student-phone"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  placeholder="(81) 90000-0000"
+                  inputMode="tel"
+                  className="min-h-11"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="student-art">Arte marcial</Label>
+                <select
+                  id="student-art"
+                  value={martialArt}
+                  onChange={(event) => setMartialArt(event.target.value)}
+                  className="border-input bg-background min-h-11 w-full rounded-md border px-3 text-sm"
+                >
+                  <option value="">Escolha a arte</option>
+                  {martialArts.map((art) => (
+                    <option key={art} value={art}>
+                      {art}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="student-plan">Plano</Label>
+                <select
+                  id="student-plan"
+                  value={planId}
+                  onChange={(event) => setPlanId(event.target.value)}
+                  className="border-input bg-background min-h-11 w-full rounded-md border px-3 text-sm"
+                >
+                  <option value="">Escolha o plano</option>
+                  {plans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name} · {formatBRLFromCents(plan.priceCents)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {formMode === "create" ? (
+                <label className="flex min-h-11 items-center gap-3 text-sm">
+                  <Checkbox
+                    checked={paid}
+                    onCheckedChange={(value) =>
+                      setPaidThisMonth(value === true)
+                    }
+                  />
+                  Pagou a mensalidade deste mês
+                </label>
+              ) : null}
+            </div>
+            <DialogFooter className="mt-6">
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11"
+                onClick={() => setFormOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" className="min-h-11" disabled={saving}>
+                {saving
+                  ? "Salvando…"
+                  : formMode === "create"
+                    ? "Salvar matrícula"
+                    : "Salvar alterações"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={Boolean(historyStudent)}
@@ -446,6 +555,55 @@ export function StudentsLedger() {
               )}
             </ul>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(next) => {
+          if (!next) {
+            setDeleteTarget(null);
+            setDeleteError(null);
+          }
+        }}
+      >
+        <DialogContent className="rounded-sm bg-background sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-heading tracking-[0.12em] uppercase">
+              Excluir aluno
+            </DialogTitle>
+            <DialogDescription>
+              Remover {deleteTarget?.name}? O histórico de pagamentos também
+              será apagado. Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError ? (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle />
+              <AlertTitle>Falha ao excluir</AlertTitle>
+              <AlertDescription>{deleteError}</AlertDescription>
+            </Alert>
+          ) : null}
+          <DialogFooter className="mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              className="min-h-11"
+              onClick={() => void handleDelete()}
+              disabled={deleting}
+            >
+              {deleting ? "Excluindo…" : "Excluir definitivamente"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

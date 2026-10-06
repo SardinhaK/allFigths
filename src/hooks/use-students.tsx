@@ -35,14 +35,16 @@ export type StudentRecord = {
   payments: PaymentRecord[];
 };
 
-type NewStudent = {
+export type StudentInput = {
   name: string;
   address: string;
   phone: string;
   martialArt: string;
   planId: string;
-  paidThisMonth: boolean;
+  paidThisMonth?: boolean;
 };
+
+type ActionResult = { ok: true } | { ok: false; error: string };
 
 type StudentsContextValue = {
   students: StudentRecord[];
@@ -53,15 +55,21 @@ type StudentsContextValue = {
   status: "loading" | "ready" | "error";
   errorMessage: string | null;
   refresh: () => Promise<void>;
-  addStudent: (input: NewStudent) => Promise<{ ok: true } | { ok: false; error: string }>;
+  addStudent: (input: StudentInput) => Promise<ActionResult>;
+  updateStudent: (id: string, input: StudentInput) => Promise<ActionResult>;
+  deleteStudent: (id: string) => Promise<ActionResult>;
   setPaid: (
     id: string,
     paid: boolean,
     yearMonth?: string
-  ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  ) => Promise<ActionResult>;
 };
 
 const StudentsContext = createContext<StudentsContextValue | null>(null);
+
+function sortStudents(list: StudentRecord[]) {
+  return [...list].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+}
 
 export function StudentsProvider({ children }: { children: ReactNode }) {
   const [students, setStudents] = useState<StudentRecord[]>([]);
@@ -109,7 +117,7 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  const addStudent = useCallback(async (input: NewStudent) => {
+  const addStudent = useCallback(async (input: StudentInput) => {
     const response = await fetch("/api/students", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -122,9 +130,38 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
     if (!response.ok || !data.student) {
       return { ok: false as const, error: data.error ?? "Falha ao cadastrar." };
     }
+    setStudents((current) => sortStudents([...current, data.student!]));
+    return { ok: true as const };
+  }, []);
+
+  const updateStudent = useCallback(async (id: string, input: StudentInput) => {
+    const response = await fetch(`/api/students/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const data = (await response.json()) as {
+      student?: StudentRecord;
+      error?: string;
+    };
+    if (!response.ok || !data.student) {
+      return { ok: false as const, error: data.error ?? "Falha ao atualizar." };
+    }
     setStudents((current) =>
-      [...current, data.student!].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+      sortStudents(
+        current.map((student) => (student.id === id ? data.student! : student))
+      )
     );
+    return { ok: true as const };
+  }, []);
+
+  const deleteStudent = useCallback(async (id: string) => {
+    const response = await fetch(`/api/students/${id}`, { method: "DELETE" });
+    const data = (await response.json()) as { ok?: boolean; error?: string };
+    if (!response.ok || !data.ok) {
+      return { ok: false as const, error: data.error ?? "Falha ao excluir." };
+    }
+    setStudents((current) => current.filter((student) => student.id !== id));
     return { ok: true as const };
   }, []);
 
@@ -181,6 +218,8 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       errorMessage,
       refresh,
       addStudent,
+      updateStudent,
+      deleteStudent,
       setPaid,
     }),
     [
@@ -193,6 +232,8 @@ export function StudentsProvider({ children }: { children: ReactNode }) {
       errorMessage,
       refresh,
       addStudent,
+      updateStudent,
+      deleteStudent,
       setPaid,
     ]
   );
