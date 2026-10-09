@@ -1,16 +1,8 @@
 import "dotenv/config";
-import path from "node:path";
 import { hash } from "bcryptjs";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { PrismaClient } from "../src/generated/prisma/client";
+import { createPrismaClient } from "../src/lib/create-prisma";
 
-const databaseUrl = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
-const raw = databaseUrl.replace(/^file:/, "");
-const absolute = path.isAbsolute(raw)
-  ? raw
-  : path.join(process.cwd(), raw.replace(/^\.\//, ""));
-const adapter = new PrismaBetterSqlite3({ url: `file:${absolute}` });
-const prisma = new PrismaClient({ adapter });
+const prisma = createPrismaClient();
 
 const DEMO_PASSWORD = "katana2026";
 
