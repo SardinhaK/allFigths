@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, Loader2 } from "lucide-react";
-import { currentMonthLabel, formatBRL } from "@/lib/students";
+import { currentMonthLabel, formatBRLFromCents } from "@/lib/format";
 import { useStudents } from "@/hooks/use-students";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -24,16 +24,16 @@ import {
 } from "@/components/ui/table";
 
 export function AccountingBoard() {
-  const { students, status, errorMessage, restoreDemo } = useStudents();
+  const { students, status, errorMessage, refresh } = useStudents();
   const month = currentMonthLabel();
   const debtors = students.filter((student) => !student.paidThisMonth);
   const missingTotal = debtors.reduce(
-    (sum, student) => sum + student.monthlyFee,
+    (sum, student) => sum + student.plan.priceCents,
     0
   );
   const receivedTotal = students
     .filter((student) => student.paidThisMonth)
-    .reduce((sum, student) => sum + student.monthlyFee, 0);
+    .reduce((sum, student) => sum + student.plan.priceCents, 0);
 
   if (status === "loading") {
     return (
@@ -44,7 +44,7 @@ export function AccountingBoard() {
         </CardHeader>
         <CardContent className="flex items-center gap-3 py-10 text-muted-foreground">
           <Loader2 className="size-4 animate-spin text-primary" />
-          Conferindo mensalidades salvas.
+          Conferindo mensalidades.
         </CardContent>
       </Card>
     );
@@ -57,8 +57,8 @@ export function AccountingBoard() {
         <AlertTitle>Falha ao ler o financeiro</AlertTitle>
         <AlertDescription>
           {errorMessage}{" "}
-          <Button variant="outline" size="sm" className="mt-3" onClick={restoreDemo}>
-            Restaurar lista de demonstração
+          <Button variant="outline" size="sm" className="mt-3 min-h-11" onClick={refresh}>
+            Tentar de novo
           </Button>
         </AlertDescription>
       </Alert>
@@ -75,13 +75,13 @@ export function AccountingBoard() {
         />
         <SummaryTile
           label="Ainda falta"
-          value={formatBRL(missingTotal)}
+          value={formatBRLFromCents(missingTotal)}
           hint={month}
           accent
         />
         <SummaryTile
           label="Já recebido"
-          value={formatBRL(receivedTotal)}
+          value={formatBRLFromCents(receivedTotal)}
           hint="Pagamentos deste mês"
         />
       </div>
@@ -132,14 +132,16 @@ export function AccountingBoard() {
                           {student.name}
                         </TableCell>
                         <TableCell>{student.martialArt}</TableCell>
-                        <TableCell>{formatBRL(student.monthlyFee)}</TableCell>
+                        <TableCell>
+                          {formatBRLFromCents(student.plan.priceCents)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                   <TableFooter>
                     <TableRow>
                       <TableCell colSpan={2}>Total ainda em falta</TableCell>
-                      <TableCell>{formatBRL(missingTotal)}</TableCell>
+                      <TableCell>{formatBRLFromCents(missingTotal)}</TableCell>
                     </TableRow>
                   </TableFooter>
                 </Table>
@@ -158,16 +160,18 @@ export function AccountingBoard() {
                     </div>
                     <div className="text-right">
                       <Badge variant="destructive">Débito</Badge>
-                      <p className="mt-2 text-sm">{formatBRL(student.monthlyFee)}</p>
+                      <p className="mt-2 text-sm">
+                        {formatBRLFromCents(student.plan.priceCents)}
+                      </p>
                     </div>
                   </li>
                 ))}
-                <li className="flex items-center justify-between border border-primary/40 bg-primary/5 p-4">
+                <li className="flex min-h-11 items-center justify-between border border-primary/40 bg-primary/5 p-4">
                   <span className="text-sm tracking-[0.12em] uppercase">
                     Total em falta
                   </span>
                   <span className="font-medium text-primary">
-                    {formatBRL(missingTotal)}
+                    {formatBRLFromCents(missingTotal)}
                   </span>
                 </li>
               </ul>

@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
-import { DEMO_MANAGER } from "@/lib/academy";
+import { DEMO_ATTENDANTS, DEMO_PASSWORD } from "@/lib/academy";
 import { useSession } from "@/hooks/use-session";
 import { DojoStamp } from "@/components/dojo-stamp";
 import { SiteFooter } from "@/components/site-footer";
@@ -35,21 +35,21 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, router, status]);
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
 
     if (!email.trim() || !password) {
-      setError("Informe e-mail e senha do gerente.");
+      setError("Informe e-mail e senha do atendente.");
       return;
     }
 
     setSubmitting(true);
-    const result = login(email, password);
+    const result = await login(email, password);
     setSubmitting(false);
 
     if (!result.ok) {
-      setError("Acesso negado. Confira as credenciais de demonstração.");
+      setError("Acesso negado. Confira as credenciais da sua unidade.");
       return;
     }
 
@@ -59,15 +59,15 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-full flex-col">
       <SiteHeader />
-      <main className="flex flex-1 items-center justify-center px-4 py-16 sm:px-6">
+      <main className="flex flex-1 items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
         <Card className="w-full max-w-md rounded-sm bg-card/85">
           <CardHeader className="items-center text-center">
             <DojoStamp size="sm" />
             <CardTitle className="mt-2 font-heading tracking-[0.2em] uppercase">
-              Acesso do gerente
+              Login do atendente
             </CardTitle>
             <CardDescription>
-              Sessão salva neste navegador. Sem servidor de autenticação.
+              Cada unidade tem seu acesso. Os alunos ficam no banco compartilhado.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -85,9 +85,11 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   autoComplete="username"
+                  inputMode="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder={DEMO_MANAGER.email}
+                  placeholder="unidade@allfights.com.br"
+                  className="min-h-11"
                 />
               </div>
               <div className="grid gap-2">
@@ -98,21 +100,25 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
+                  className="min-h-11"
                 />
               </div>
-              <Button type="submit" disabled={submitting} size="lg">
-                {submitting ? "Entrando…" : "Entrar no dojo"}
+              <Button type="submit" disabled={submitting} size="lg" className="min-h-11">
+                {submitting ? "Entrando…" : "Entrar"}
               </Button>
             </form>
             <div className="mt-6 border border-white/10 bg-black/20 p-3 text-xs text-muted-foreground">
               <p className="tracking-[0.16em] text-foreground uppercase">
                 Demonstração
               </p>
-              <p className="mt-2">
-                E-mail: {DEMO_MANAGER.email}
-                <br />
-                Senha: {DEMO_MANAGER.password}
-              </p>
+              <p className="mt-2">Senha de todas as unidades: {DEMO_PASSWORD}</p>
+              <ul className="mt-2 space-y-1">
+                {DEMO_ATTENDANTS.map((item) => (
+                  <li key={item.email}>
+                    {item.unit}: {item.email}
+                  </li>
+                ))}
+              </ul>
             </div>
             <p className="mt-4 text-center text-sm text-muted-foreground">
               <Link href="/" className="hover:text-foreground">

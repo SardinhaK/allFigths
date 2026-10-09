@@ -9,7 +9,7 @@ export function SiteFooter() {
             {ACADEMY.name.toUpperCase()}
           </p>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-            {ACADEMY.legalName}. Dojo em {ACADEMY.neighborhood}, {ACADEMY.city},
+            {ACADEMY.legalName}. Três unidades em {ACADEMY.city}/{ACADEMY.state},
             desde {ACADEMY.foundedYear}.
           </p>
         </div>

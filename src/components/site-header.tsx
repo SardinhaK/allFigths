@@ -16,10 +16,15 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-const publicLinks = [
-  { href: "/#artes", label: "Artes" },
-  { href: "/#horarios", label: "Horários" },
-  { href: "/#dojo", label: "O dojo" },
+const unitLinks = [
+  { href: "/#caxanga", label: "Caxangá" },
+  { href: "/#nova-descoberta", label: "Nova Descoberta" },
+  { href: "/#correio-galeria", label: "Correio Galeria" },
+];
+
+const pageLinks = [
+  { href: "/eventos", label: "Eventos" },
+  { href: "/imperio-dos-tatas", label: "Império dos Tatãs" },
 ];
 
 export function SiteHeader() {
@@ -28,8 +33,8 @@ export function SiteHeader() {
   const { isAuthenticated, status, logout } = useSession();
   const onGestao = pathname.startsWith("/gestao");
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     router.push("/");
   }
 
@@ -45,17 +50,30 @@ export function SiteHeader() {
               {ACADEMY.name.toUpperCase()}
             </span>
             <span className="mt-1 text-[10px] tracking-[0.28em] text-muted-foreground uppercase">
-              São Paulo · 道場
+              Recife · 道場
             </span>
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
-          {publicLinks.map((link) => (
+        <nav className="hidden items-center gap-5 lg:flex">
+          {unitLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-xs tracking-[0.18em] text-muted-foreground uppercase transition-colors hover:text-foreground"
+              className="text-[11px] tracking-[0.16em] text-muted-foreground uppercase transition-colors hover:text-foreground"
+            >
+              {link.label}
+            </Link>
+          ))}
+          {pageLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={
+                pathname === link.href
+                  ? "text-[11px] tracking-[0.16em] text-primary uppercase"
+                  : "text-[11px] tracking-[0.16em] text-muted-foreground uppercase transition-colors hover:text-foreground"
+              }
             >
               {link.label}
             </Link>
@@ -66,8 +84,8 @@ export function SiteHeader() {
                 href="/gestao"
                 className={
                   onGestao
-                    ? "text-xs tracking-[0.18em] text-primary uppercase"
-                    : "text-xs tracking-[0.18em] text-muted-foreground uppercase hover:text-foreground"
+                    ? "text-[11px] tracking-[0.16em] text-primary uppercase"
+                    : "text-[11px] tracking-[0.16em] text-muted-foreground uppercase hover:text-foreground"
                 }
               >
                 Gestão
@@ -78,14 +96,14 @@ export function SiteHeader() {
             </>
           ) : (
             <Button asChild size="sm">
-              <Link href="/login">Acesso do gerente</Link>
+              <Link href="/login">Login</Link>
             </Button>
           )}
         </nav>
 
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="md:hidden">
+            <Button variant="outline" size="icon" className="lg:hidden">
               <Menu />
               <span className="sr-only">Abrir menu</span>
             </Button>
@@ -97,11 +115,25 @@ export function SiteHeader() {
               </SheetTitle>
             </SheetHeader>
             <nav className="flex flex-col gap-1 px-4">
-              {publicLinks.map((link) => (
+              <p className="pt-2 text-[10px] tracking-[0.2em] text-muted-foreground uppercase">
+                Unidades
+              </p>
+              {unitLinks.map((link) => (
                 <SheetClose asChild key={link.href}>
                   <Link
                     href={link.href}
-                    className="py-2 text-sm tracking-[0.16em] text-muted-foreground uppercase"
+                    className="py-3 text-sm tracking-[0.16em] text-muted-foreground uppercase"
+                  >
+                    {link.label}
+                  </Link>
+                </SheetClose>
+              ))}
+              <Separator className="my-3" />
+              {pageLinks.map((link) => (
+                <SheetClose asChild key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="py-3 text-sm tracking-[0.16em] text-muted-foreground uppercase"
                   >
                     {link.label}
                   </Link>
@@ -113,19 +145,19 @@ export function SiteHeader() {
                   <SheetClose asChild>
                     <Link
                       href="/gestao"
-                      className="py-2 text-sm tracking-[0.16em] uppercase"
+                      className="py-3 text-sm tracking-[0.16em] uppercase"
                     >
                       Gestão
                     </Link>
                   </SheetClose>
-                  <Button variant="outline" onClick={handleLogout}>
+                  <Button variant="outline" className="min-h-11" onClick={handleLogout}>
                     Sair
                   </Button>
                 </>
               ) : (
                 <SheetClose asChild>
-                  <Button asChild>
-                    <Link href="/login">Acesso do gerente</Link>
+                  <Button asChild className="min-h-11">
+                    <Link href="/login">Login</Link>
                   </Button>
                 </SheetClose>
               )}

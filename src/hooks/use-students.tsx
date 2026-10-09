@@ -4,166 +4,242 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
-  useSyncExternalStore,
+  useState,
   type ReactNode,
 } from "react";
-import type { MartialArt } from "@/lib/academy";
-import { useHydrated } from "@/hooks/use-hydrated";
-import {
-  parseStudents,
-  SEED_STUDENTS,
-  STUDENTS_STORAGE_KEY,
-  type Student,
-} from "@/lib/students";
 
-const CORRUPT = "__corrupt__";
-const listeners = new Set<() => void>();
-
-type StudentsStatus = "loading" | "ready" | "error";
-
-type NewStudent = {
+export type PlanOption = {
+  id: string;
   name: string;
-  martialArt: MartialArt;
-  monthlyFee: number;
-  paidThisMonth: boolean;
+  priceCents: number;
+  description: string;
 };
 
+export type PaymentRecord = {
+  yearMonth: string;
+  paid: boolean;
+  paidAt: string | null;
+};
+
+export type StudentRecord = {
+  id: string;
+  name: string;
+  address: string;
+  phone: string;
+  martialArt: string;
+  createdAt: string;
+  plan: PlanOption;
+  paidThisMonth: boolean;
+  payments: PaymentRecord[];
+};
+
+export type StudentInput = {
+  name: string;
+  address: string;
+  phone: string;
+  martialArt: string;
+  planId: string;
+  paidThisMonth?: boolean;
+};
+
+type ActionResult = { ok: true } | { ok: false; error: string };
+
 type StudentsContextValue = {
-  students: Student[];
-  status: StudentsStatus;
+  students: StudentRecord[];
+  plans: PlanOption[];
+  martialArts: string[];
+  yearMonth: string;
+  unitName: string;
+  status: "loading" | "ready" | "error";
   errorMessage: string | null;
-  addStudent: (input: NewStudent) => void;
-  setPaid: (id: string, paid: boolean) => void;
-  restoreDemo: () => void;
+  refresh: () => Promise<void>;
+  addStudent: (input: StudentInput) => Promise<ActionResult>;
+  updateStudent: (id: string, input: StudentInput) => Promise<ActionResult>;
+  deleteStudent: (id: string) => Promise<ActionResult>;
+  setPaid: (
+    id: string,
+    paid: boolean,
+    yearMonth?: string
+  ) => Promise<ActionResult>;
 };
 
 const StudentsContext = createContext<StudentsContextValue | null>(null);
 
-function emit() {
-  listeners.forEach((listener) => listener());
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  const onStorage = (event: StorageEvent) => {
-    if (event.key === STUDENTS_STORAGE_KEY || event.key === null) listener();
-  };
-  window.addEventListener("storage", onStorage);
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener("storage", onStorage);
-  };
-}
-
-function getSnapshot() {
-  try {
-    const raw = localStorage.getItem(STUDENTS_STORAGE_KEY);
-    if (raw === null) {
-      const seeded = JSON.stringify(SEED_STUDENTS);
-      localStorage.setItem(STUDENTS_STORAGE_KEY, seeded);
-      return seeded;
-    }
-    return raw;
-  } catch {
-    return CORRUPT;
-  }
-}
-
-function getServerSnapshot() {
-  return null;
-}
-
-function persist(students: Student[]) {
-  localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(students));
-  emit();
+function sortStudents(list: StudentRecord[]) {
+  return [...list].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 }
 
 export function StudentsProvider({ children }: { children: ReactNode }) {
-  const hydrated = useHydrated();
-  const raw = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const [students, setStudents] = useState<StudentRecord[]>([]);
+  const [plans, setPlans] = useState<PlanOption[]>([]);
+  const [martialArts, setMartialArts] = useState<string[]>([]);
+  const [yearMonth, setYearMonth] = useState("");
+  const [unitName, setUnitName] = useState("");
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const parsed = useMemo(() => {
-    if (!hydrated || raw === null) {
-      return {
-        students: [] as Student[],
-        status: "loading" as const,
-        errorMessage: null as string | null,
-      };
-    }
-    if (raw === CORRUPT) {
-      return {
-        students: [] as Student[],
-        status: "error" as const,
-        errorMessage:
-          "Não foi possível ler a lista de alunos salva neste navegador.",
-      };
-    }
+  const refresh = useCallback(async () => {
+    setStatus("loading");
+    setErrorMessage(null);
     try {
-      return {
-        students: parseStudents(raw),
-        status: "ready" as const,
-        errorMessage: null as string | null,
+      const response = await fetch("/api/students", { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error("Falha ao carregar alunos da unidade.");
+      }
+      const data = (await response.json()) as {
+        students: StudentRecord[];
+        plans: PlanOption[];
+        martialArts: string[];
+        yearMonth: string;
+        unit: { name: string };
       };
-    } catch {
-      return {
-        students: [] as Student[],
-        status: "error" as const,
-        errorMessage:
-          "Não foi possível ler a lista de alunos salva neste navegador.",
-      };
+      setStudents(data.students);
+      setPlans(data.plans);
+      setMartialArts(data.martialArts);
+      setYearMonth(data.yearMonth);
+      setUnitName(data.unit.name);
+      setStatus("ready");
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar os alunos."
+      );
     }
-  }, [hydrated, raw]);
+  }, []);
 
-  const addStudent = useCallback(
-    (input: NewStudent) => {
-      const next: Student = {
-        id:
-          typeof crypto !== "undefined" && crypto.randomUUID
-            ? crypto.randomUUID()
-            : `stu_${Date.now()}`,
-        name: input.name.trim(),
-        martialArt: input.martialArt,
-        monthlyFee: input.monthlyFee,
-        paidThisMonth: input.paidThisMonth,
-        createdAt: new Date().toISOString(),
-      };
-      persist([next, ...parsed.students]);
-    },
-    [parsed.students]
-  );
+  useEffect(() => {
+    // Carrega alunos da unidade autenticada no mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch inicial da unidade
+    void refresh();
+  }, [refresh]);
+
+  const addStudent = useCallback(async (input: StudentInput) => {
+    const response = await fetch("/api/students", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const data = (await response.json()) as {
+      student?: StudentRecord;
+      error?: string;
+    };
+    if (!response.ok || !data.student) {
+      return { ok: false as const, error: data.error ?? "Falha ao cadastrar." };
+    }
+    setStudents((current) => sortStudents([...current, data.student!]));
+    return { ok: true as const };
+  }, []);
+
+  const updateStudent = useCallback(async (id: string, input: StudentInput) => {
+    const response = await fetch(`/api/students/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const data = (await response.json()) as {
+      student?: StudentRecord;
+      error?: string;
+    };
+    if (!response.ok || !data.student) {
+      return { ok: false as const, error: data.error ?? "Falha ao atualizar." };
+    }
+    setStudents((current) =>
+      sortStudents(
+        current.map((student) => (student.id === id ? data.student! : student))
+      )
+    );
+    return { ok: true as const };
+  }, []);
+
+  const deleteStudent = useCallback(async (id: string) => {
+    const response = await fetch(`/api/students/${id}`, { method: "DELETE" });
+    const data = (await response.json()) as { ok?: boolean; error?: string };
+    if (!response.ok || !data.ok) {
+      return { ok: false as const, error: data.error ?? "Falha ao excluir." };
+    }
+    setStudents((current) => current.filter((student) => student.id !== id));
+    return { ok: true as const };
+  }, []);
 
   const setPaid = useCallback(
-    (id: string, paid: boolean) => {
-      persist(
-        parsed.students.map((student) =>
-          student.id === id ? { ...student, paidThisMonth: paid } : student
-        )
-      );
-    },
-    [parsed.students]
-  );
+    async (id: string, paid: boolean, targetMonth?: string) => {
+      const response = await fetch(`/api/students/${id}/payments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paid, yearMonth: targetMonth }),
+      });
+      const data = (await response.json()) as {
+        payment?: PaymentRecord;
+        error?: string;
+      };
+      if (!response.ok || !data.payment) {
+        return {
+          ok: false as const,
+          error: data.error ?? "Falha ao atualizar pagamento.",
+        };
+      }
 
-  const restoreDemo = useCallback(() => {
-    persist(SEED_STUDENTS);
-  }, []);
+      setStudents((current) =>
+        current.map((student) => {
+          if (student.id !== id) return student;
+          const payments = [...student.payments];
+          const index = payments.findIndex(
+            (payment) => payment.yearMonth === data.payment!.yearMonth
+          );
+          if (index >= 0) {
+            payments[index] = data.payment!;
+          } else {
+            payments.unshift(data.payment!);
+          }
+          const paidThisMonth =
+            data.payment!.yearMonth === yearMonth
+              ? data.payment!.paid
+              : student.paidThisMonth;
+          return { ...student, payments, paidThisMonth };
+        })
+      );
+      return { ok: true as const };
+    },
+    [yearMonth]
+  );
 
   const value = useMemo(
     () => ({
-      students: parsed.students,
-      status: parsed.status,
-      errorMessage: parsed.errorMessage,
+      students,
+      plans,
+      martialArts,
+      yearMonth,
+      unitName,
+      status,
+      errorMessage,
+      refresh,
       addStudent,
+      updateStudent,
+      deleteStudent,
       setPaid,
-      restoreDemo,
     }),
-    [parsed, addStudent, setPaid, restoreDemo]
+    [
+      students,
+      plans,
+      martialArts,
+      yearMonth,
+      unitName,
+      status,
+      errorMessage,
+      refresh,
+      addStudent,
+      updateStudent,
+      deleteStudent,
+      setPaid,
+    ]
   );
 
   return (
-    <StudentsContext.Provider value={value}>
-      {children}
-    </StudentsContext.Provider>
+    <StudentsContext.Provider value={value}>{children}</StudentsContext.Provider>
   );
 }
 
